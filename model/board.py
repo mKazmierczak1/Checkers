@@ -16,13 +16,30 @@ class Board:
         self.player2_left = 12
         self.current_positions = CHECKERS_LAYOUT.copy()
 
-    def move(self, player, piece: tuple, field: tuple):
+    def move(self, player, piece: tuple, move: tuple):
         if not self.__validate_piece:
             raise Exception("Wrong piece!")
 
+        if move[0] == "capture":
+            self.__capture_piece()
+        else:
+            self.__move_near(player, piece, (move[1], move[2]))
+
+        
+
+    def __move_near(self, player, piece: tuple, field: tuple):
         self.current_positions[piece[0]][piece[1]] = VOID
         self.current_positions[field[0]][field[1]] = player
 
+    def __capture_piece(self, player, piece: tuple, field: tuple):
+        if player == PLAYER_1:
+            self.player2_left -= 1
+        else:
+            self.player1_left -= 1
+
+        self.current_positions[piece[0]][piece[1]] = VOID
+        self.current_positions[(piece[0] + field[0]) / 2][(piece[1] + field[1]) / 2] = VOID
+        self.current_positions[field[0]][field[1]] = player
 
     def possible_moves(self, player, piece: tuple):
         if not self.__validate_piece:
@@ -35,18 +52,38 @@ class Board:
         else:
             diff = 1
 
-        move = (piece[0] + diff, piece[1] - 1)
+        near = self.__check_near_positions(piece, diff)
+        
+        for n in near:
+            print(near)
+            if not n is None and n[0] != VOID and n[0] != player:
+                field_column = n[2] + 1 if n[2] > piece[1] else n[2] - 1
+                next_field = self.__check_position((n[1] + diff, field_column))
 
-        if self.__validate_field(move) and self.current_positions[move[0]][move[1]] == VOID:
-            moves.append((move))
+                if next_field[0] == VOID:
+                    moves.append(("capture", next_field[1], next_field[2]))
+        
+        if moves != []:
+            return moves
 
-        move = (piece[0] + diff, piece[1] + 1)
-
-        if self.__validate_field(move) and self.current_positions[move[0]][move[1]] == VOID:
-            moves.append((move))
+        for n in near:
+            if not n is None and n[0] == VOID:
+                moves.append(("near", n[1], n[2]))
 
         return moves
 
+
+    def __check_near_positions(self, field, diff):
+        fields = []
+
+        fields.append(self.__check_position((field[0] + diff, field[1] - 1)))
+        fields.append(self.__check_position((field[0] + diff, field[1] + 1)))
+        
+        return fields
+    
+    def __check_position(self, field):
+        if self.__validate_field(field):
+            return (self.current_positions[field[0]][field[1]], field[0], field[1])
 
     def __validate_player(self, player):
         if player == 1 or player == 2:
