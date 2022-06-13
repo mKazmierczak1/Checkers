@@ -2,7 +2,7 @@ from tkinter import *
 from constans import *
 import view.elements as elements
 import view.frames as frames
-import controller.single_game_controller as game
+import controller.game_controller as game
 
 highlighted_fields = []
 

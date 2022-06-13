@@ -2,7 +2,7 @@ from tkinter import *
 from model.board import *
 from constans import *
 import view.elements as elements
-import controller.single_game_controller as game
+import controller.game_controller as game
 
 # return empty checked board
 def get_board_frame(master_window):

@@ -16,7 +16,7 @@ def move(player, piece, field, frame: Frame):
     # if game has finished draw proper element
     if board.make_move(player, piece, field):
         print("Game finished")
-        windows.draw_winner_window(frame.master)
+        windows.draw_winner_window(frame.master, player)
 
     # update turn
     next_turn()
