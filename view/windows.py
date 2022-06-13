@@ -2,6 +2,7 @@ from tkinter import *
 from constans import *
 import view.frames as frames
 
+# return template window
 def get_window():
     window = Tk()
     window.title("Chekers")
@@ -10,6 +11,7 @@ def get_window():
 
     return window
 
+# create main menu window
 def get_main_menu_window():
     window = get_window()
     frames.get_board_frame(window)
@@ -27,15 +29,22 @@ def get_main_menu_window():
 
     return window
 
+# return simple checked game board without pieces on it
 def get_empty_board_window():
     window = get_window()
     frames.get_board_frame(window)
 
     return window
 
+# return window with game board with pieces on their starting positions
 def get_starting_board_widow():
     window = get_window()
     frames.get_board_frame(window)
     frames.draw_all_pieces(window.children["!frame"])
 
     return window
+
+def draw_winner_window(window: Tk, player):
+    buttons_frame = Frame(window, background=RED, height=300, width=300, bd=4, relief="groove")
+    buttons_frame.place(x=200, y=300)
+    label = Label(window, text="Player " + str(player) + " won!", font=("Comic Sans MS", 56), background=RED)

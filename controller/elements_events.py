@@ -1,51 +1,54 @@
 from tkinter import *
 from constans import *
 import view.elements as elements
+import view.frames as frames
 import controller.single_game_controller as game
 
 highlighted_fields = []
 
+# bind highlighting possible moves function with piece
 def bind_func_with_piece(canvas, row, column, frame: Frame, color):
     func = lambda event: highlight_possible_moves(1 if color == RED else 2, (row, column), frame, event)
     canvas.bind('<Button-1>', func)
 
+# highlight fields on which you can move piece
 def highlight_possible_moves(player, piece: tuple, frame: Frame, event):
     global highlighted_fields
     
+    # remove old highlighted fields
     for hf in highlighted_fields:
         elements.draw_field(hf[1], hf[2], frame, BLACK)
 
+    # create new highlighted fields
     highlighted_fields = game.possible_moves(player, piece)
-
     for hf in highlighted_fields:
         canvas = elements.draw_field(hf[1], hf[2], frame, LIGHT_BLUE)
-        bind_move_func(canvas, player, piece, (hf[1], hf[2]), frame)
+        bind_move_func(canvas, player, piece, hf, frame)
 
-def highlight_possible_moves(player, piece: tuple, frame: Frame, event):
-    global highlighted_fields
-    
-    for hf in highlighted_fields:
-        elements.draw_field(hf[1], hf[2], frame, BLACK)
-
-    highlighted_fields = game.possible_moves(player, piece)
-
-    for hf in highlighted_fields:
-        canvas = elements.draw_field(hf[1], hf[2], frame, LIGHT_BLUE)
-        bind_move_func(canvas, player, piece, (hf[1], hf[2]), frame)
-
-def bind_move_func(canvas, player, piece: tuple, field: tuple, frame: Frame):
-    func = lambda event: move_piece(player, piece, field, frame, event)
+# bind function for moving piece with highlighted field
+def bind_move_func(canvas, player, piece: tuple, move: tuple, frame: Frame):
+    func = lambda event: move_piece(player, piece, move, frame, event)
     canvas.bind('<Button-1>', func)
 
-def move_piece(player, piece: tuple, field: tuple, frame: Frame, event):
+# move piece to highlighted field and update view after changes on the board
+def move_piece(player, piece: tuple, move: tuple, frame: Frame, event):
     global highlighted_fields
 
+    # remove old highlighted fields
     for hf in highlighted_fields:
         elements.draw_field(hf[1], hf[2], frame, BLACK)
 
     highlighted_fields.clear()
 
-    elements.draw_field(*piece, frame, BLACK)
-    elements.draw_piece(*field, frame, RED if player == 1 else PURPLE)
+    # make move on the board
+    game.move(player, piece, move, frame)
 
-    game.move(player, piece, field)
+    # update view after changes on the board
+    window = frame.master
+    clean_window(window)
+    frames.draw_all_pieces(frames.get_board_frame(window))
+
+# remove all elements present on the window
+def clean_window(window: Tk):
+    for widget in window.winfo_children():
+        widget.destroy()
