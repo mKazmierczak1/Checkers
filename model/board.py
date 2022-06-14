@@ -14,7 +14,7 @@ CHECKERS_LAYOUT =  [[VOID, PLAYER_2,   VOID,   PLAYER_2,   VOID,   PLAYER_2,   V
                     [PLAYER_1, VOID,    PLAYER_1,   VOID,  PLAYER_1, VOID,    PLAYER_1,    VOID]]
 
 class Board:
-    def __init__(self):
+    def __init__(self, board, player1_left, player2_left):
         self.player1_left = 12
         self.player2_left = 12
         self.current_positions = CHECKERS_LAYOUT.copy()
@@ -73,17 +73,8 @@ class Board:
         near = self.__check_near_positions(player, piece, diff)
         
         for n in near:
-            if not n is None and n[0] != VOID and n[0] != player:
-                field_column = n[2] + 1 if n[2] > piece[1] else n[2] - 1
-                next_field = self.__check_position((n[1] + diff, field_column))
-
-                if not next_field is None and next_field[0] == VOID and (diff > 0 and n[1] > piece[0] or diff < 0 and n[1] < piece[0]):
-                    moves.append(("capture", next_field[1], next_field[2]))
-                
-                if diff > 0 and n[1] < piece[0] or diff < 0 and n[1] > piece[0]:
-                    back_field = self.__check_position((n[1] - diff, field_column))
-                    if  not back_field is None and back_field[0] == VOID:
-                        moves.append(("capture", back_field[1], back_field[2]))
+            if not n is None:
+                moves.extend(self.check_capture_moves(n, piece, player, diff))
                 
         if moves != []:
             return moves
@@ -92,6 +83,23 @@ class Board:
             if not n is None and n[0] == VOID:
                 moves.append(("near", n[1], n[2]))
 
+        return moves
+
+    def check_capture_moves(self, field, piece, player, diff):
+        moves = []
+
+        if field[0] != VOID and field[0] != player:
+            field_column = field[2] + 1 if field[2] > piece[1] else field[2] - 1
+            next_field = self.__check_position((field[1] + diff, field_column))
+
+            if not next_field is None and next_field[0] == VOID and (diff > 0 and field[1] > piece[0] or diff < 0 and field[1] < piece[0]):
+                moves.append(("capture", next_field[1], next_field[2]))
+            
+            if diff > 0 and field[1] < piece[0] or diff < 0 and field[1] > piece[0]:
+                back_field = self.__check_position((field[1] - diff, field_column))
+                if not back_field is None and back_field[0] == VOID:
+                    moves.append(("capture", back_field[1], back_field[2]))
+        
         return moves
 
     # return all possible moves for active player

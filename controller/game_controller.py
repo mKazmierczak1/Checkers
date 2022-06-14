@@ -1,9 +1,10 @@
 from tkinter import Frame
-from model.board import Board
+from model.board import Board, CHECKERS_LAYOUT
+import model.ai
 import view.windows as windows
 
 # create instance of game board
-board = Board()
+board = Board(CHECKERS_LAYOUT, 12, 12)
 turn = 1
 
 # storage for all allowed moves which player can make
