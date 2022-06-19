@@ -2,14 +2,25 @@ from tkinter import *
 from constans import *
 import view.elements as elements
 import view.frames as frames
-import controller.game_controller as game
+from controller.game_controller import Game_controller
 
 highlighted_fields = []
+game: Game_controller = None
 
 # bind highlighting possible moves function with piece
 def bind_func_with_piece(canvas, row, column, frame: Frame, color):
-    func = lambda event: highlight_possible_moves(1 if color == RED else 2, (row, column), frame, event)
+    func = lambda event: highlight_possible_moves(check_player(color), (row, column), frame, event)
     canvas.bind('<Button-1>', func)
+
+def check_player(color):
+    if color == RED:
+        return 1
+    elif color == PURPLE:
+        return 2
+    elif color == ORANGE:
+        return 3
+    else:
+        return 4
 
 # highlight fields on which you can move piece
 def highlight_possible_moves(player, piece: tuple, frame: Frame, event):

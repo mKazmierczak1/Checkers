@@ -1,47 +1,69 @@
-from tkinter import Frame
+from tkinter import Frame, Tk
 from model.board import Board, CHECKERS_LAYOUT
-import model.ai
+from model.ai import Simple_AI
 import view.windows as windows
+import view.frames as frames
+from copy import deepcopy
 
-# create instance of game board
-board = Board(CHECKERS_LAYOUT, 12, 12)
-turn = 1
+class Game_controller:
 
-# storage for all allowed moves which player can make
-allowed_moves = board.get_all_possible_moves(turn)
+    # create instance of game board
+    def __init__(self, ai: Simple_AI, window: Tk):
+        self.board = Board(deepcopy(CHECKERS_LAYOUT), 12, 12)
+        self.ai = ai
+        self.turn = 1
+        self.window = window
 
-# make move
-def move(player, piece, field, frame: Frame):
-    global allowed_moves
+        # storage for all allowed moves which player can make
+        self.allowed_moves = self.board.get_all_possible_moves(self.turn)
 
-    # if game has finished draw proper element
-    if board.make_move(player, piece, field):
-        print("Game finished")
-        windows.draw_winner_window(frame.master, player)
+    # make move
+    def move(self, player, piece, field, frame: Frame):
+        moves = [field]
 
-    # update turn
-    next_turn()
+        for m in self.allowed_moves:
+            if m[0][1] == field[1] and m[0][2] == field[2]:
+                moves = m
 
-    # update allowed moves
-    allowed_moves = board.get_all_possible_moves(turn)
+        # if game has finished draw proper element
+        if self.board.make_moves(player, piece, moves):
+            print("Game finished")
+            windows.draw_winner_window(self.window, player)
+        else:
+            # update turn
+            self.__next_turn()
 
-# return list of all moves for active player
-def possible_moves(player, piece):
-    print(allowed_moves)
-    if player == turn:
-        moves = board.possible_moves_for_piece(player, piece)
-        result = []
+            # update allowed moves
+            self.allowed_moves = self.board.get_all_possible_moves(self.turn)
 
-        # check if possible moves for selected piece are allowed in this turn 
-        for m in moves:
-          if m in allowed_moves:
-            result.append(m)
+    # return list of all moves for active player
+    def possible_moves(self, player, piece):
+        if player == self.turn or player == (self.turn + 2):
+            
+            moves = self.board.possible_moves_for_piece(player, piece)
+            result = []
 
-        return result  
-    else:
-        return []
+            # check if possible moves for selected piece are allowed in this turn 
+            for m in moves:
+                if m in self.allowed_moves:
+                    result.append(m[0])
 
-# change turn
-def next_turn():
-    global turn
-    turn = 1 if turn == 2 else 2
+            return result  
+        else:
+            return []
+
+    # change turn
+    def __next_turn(self):
+        if self.ai is None:
+            self.turn = 1 if self.turn == 2 else 2
+        else:
+            ai_move = self.ai.make_move(self.board)
+            self.board.make_moves(2, (ai_move[0][3], ai_move[0][4]), ai_move)
+            self.__update_window()
+
+    def __update_window(self):
+        for widget in self.window.winfo_children():
+            widget.destroy()
+
+        frames.draw_all_pieces(frames.get_board_frame(self.window))
+    

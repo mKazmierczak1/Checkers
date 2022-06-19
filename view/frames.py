@@ -2,7 +2,7 @@ from tkinter import *
 from model.board import *
 from constans import *
 import view.elements as elements
-import controller.game_controller as game
+import controller.elements_events as elem_events
 
 # return empty checked board
 def get_board_frame(master_window):
@@ -23,7 +23,11 @@ def get_board_frame(master_window):
 def draw_all_pieces(frame:Frame):
     for i in range(0, 8):
         for j in range(0, 8):
-            if game.board.current_positions[i][j] == PLAYER_1:
+            if elem_events.game.board.current_positions[i][j] == PLAYER_1:
                 elements.draw_piece(i, j, frame, RED)
-            elif game.board.current_positions[i][j] == PLAYER_2:
+            elif elem_events.game.board.current_positions[i][j] == PLAYER_2:
                 elements.draw_piece(i, j, frame, PURPLE)
+            elif elem_events.game.board.current_positions[i][j] == PLAYER_1_KING:
+                elements.draw_piece(i, j, frame, ORANGE)
+            elif elem_events.game.board.current_positions[i][j] == PLAYER_2_KING:
+                elements.draw_piece(i, j, frame, PINK)

@@ -3,5 +3,7 @@ BLACK = "black"
 RED = "red"
 PURPLE = "purple"
 LIGHT_BLUE = "lightblue"
+ORANGE= "orange"
+PINK = "hotpink"
 WIDTH = 700
 HEIGHT = 700

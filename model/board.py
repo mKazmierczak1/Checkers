@@ -2,6 +2,8 @@
 VOID = 0
 PLAYER_1 = 1
 PLAYER_2 = 2
+PLAYER_1_KING = 3
+PLAYER_2_KING = 4
 
 # starting board
 CHECKERS_LAYOUT =  [[VOID, PLAYER_2,   VOID,   PLAYER_2,   VOID,   PLAYER_2,   VOID,   PLAYER_2], 
@@ -14,16 +16,22 @@ CHECKERS_LAYOUT =  [[VOID, PLAYER_2,   VOID,   PLAYER_2,   VOID,   PLAYER_2,   V
                     [PLAYER_1, VOID,    PLAYER_1,   VOID,  PLAYER_1, VOID,    PLAYER_1,    VOID]]
 
 class Board:
-    def __init__(self, board, player1_left, player2_left):
-        self.player1_left = 12
-        self.player2_left = 12
-        self.current_positions = CHECKERS_LAYOUT.copy()
+    def __init__(self, board: list, player1_left, player2_left):
+        self.player1_left = player1_left
+        self.player2_left = player2_left
+        self.current_positions = board.copy()
 
-    def make_move(self, player, piece: tuple, move: tuple):
-        if not self.__validate_piece:
-            raise Exception("Wrong piece!")
+    def make_moves(self, player, piece: tuple, moves: list):
+        moves.reverse()
+        for i in range(0, len(moves)):
+            if i == 0:
+                self.__make_move(player, piece, moves[i])
+            else:
+                self.__make_move(player, (moves[i - 1][1], moves[i - 1][2]), moves[i])
 
-        print(move)
+        return self.is_game_finished()
+
+    def __make_move(self, player, piece: tuple, move: tuple):
         if move[0] == "capture":
             return self.__capture_piece(player, piece, (move[1], move[2]))
         else:
@@ -34,12 +42,16 @@ class Board:
         self.current_positions[piece[0]][piece[1]] = VOID
         self.current_positions[field[0]][field[1]] = player
 
-        return 0
+        self.__change_to_king(player, field)
+
+    def __change_to_king(self, player, field):
+        if player == PLAYER_1 and field[0] == 0 or player == PLAYER_2 and field[0] == 7:
+            self.current_positions[field[0]][field[1]] = PLAYER_1_KING if player == PLAYER_1 else PLAYER_2_KING
 
     # capture opponent's piece and move foward
     def __capture_piece(self, player, piece: tuple, field: tuple):
         # update remaining pieces
-        if player == PLAYER_1:
+        if player == PLAYER_1 or player == PLAYER_1_KING:
             self.player2_left -= 1
         else:
             self.player1_left -= 1
@@ -48,7 +60,7 @@ class Board:
         self.current_positions[int((piece[0] + field[0]) / 2)][int((piece[1] + field[1]) / 2)] = VOID
         self.current_positions[field[0]][field[1]] = player
 
-        return self.is_game_finished()
+        self.__change_to_king(player, field)
 
     # check if game has ended and who is a winner
     def is_game_finished(self):
@@ -59,49 +71,6 @@ class Board:
         else:
             return 0
 
-    def possible_moves_for_piece(self, player, piece: tuple):
-        if not self.__validate_piece:
-            raise Exception("Wrong piece!")
-
-        moves = []
-
-        if player == PLAYER_1:
-            diff = -1
-        else:
-            diff = 1
-
-        near = self.__check_near_positions(player, piece, diff)
-        
-        for n in near:
-            if not n is None:
-                moves.extend(self.check_capture_moves(n, piece, player, diff))
-                
-        if moves != []:
-            return moves
-
-        for n in near:
-            if not n is None and n[0] == VOID:
-                moves.append(("near", n[1], n[2]))
-
-        return moves
-
-    def check_capture_moves(self, field, piece, player, diff):
-        moves = []
-
-        if field[0] != VOID and field[0] != player:
-            field_column = field[2] + 1 if field[2] > piece[1] else field[2] - 1
-            next_field = self.__check_position((field[1] + diff, field_column))
-
-            if not next_field is None and next_field[0] == VOID and (diff > 0 and field[1] > piece[0] or diff < 0 and field[1] < piece[0]):
-                moves.append(("capture", next_field[1], next_field[2]))
-            
-            if diff > 0 and field[1] < piece[0] or diff < 0 and field[1] > piece[0]:
-                back_field = self.__check_position((field[1] - diff, field_column))
-                if not back_field is None and back_field[0] == VOID:
-                    moves.append(("capture", back_field[1], back_field[2]))
-        
-        return moves
-
     # return all possible moves for active player
     def get_all_possible_moves(self, player):
         moves = []
@@ -109,7 +78,7 @@ class Board:
         # create list with all possible moves for all active player's pieces 
         for i in range(0, 8):
             for j in range(0, 8):
-                if self.current_positions[i][j] == player:
+                if self.__check_player(self.current_positions[i][j]) == self.__check_player(player):
                     moves.extend(self.possible_moves_for_piece(player, (i, j)))
 
         capture_moves = self.__get_capture_moves(moves)
@@ -120,12 +89,95 @@ class Board:
         else:
             return moves
 
+    def possible_moves_for_piece(self, player, piece: tuple):
+        if player == PLAYER_1_KING or player == PLAYER_2_KING:
+            return self.__king_moves(piece, player)
+        elif player == PLAYER_1:
+            return self.__pawn_moves(piece, player, -1, None)
+        else:
+             return self.__pawn_moves(piece, player, 1, None)
+
+    def __pawn_moves(self, piece, player, diff, previous_move):
+        moves = []
+        fields = self.__check_near_positions(player, piece, diff)
+
+        for field in fields:
+            if field[0] == VOID and previous_move is None:
+                moves.append([("near", field[1], field[2], piece[0], piece[1])])
+            elif self.__check_player(field[0]) != player and field[0] != VOID:
+                field_column = field[2] + 1 if field[2] > piece[1] else field[2] - 1
+                next_field = self.__check_position((field[1] + (field[1] - piece[0]) , field_column))
+
+                if not next_field is None and next_field[0] == VOID:
+                    if previous_move is None or next_field[1] != previous_move[0] or next_field[2] != previous_move[1]:
+                        future_moves = self.__pawn_moves((next_field[1], next_field[2]), player, diff, piece)
+                    
+                        for m in future_moves:
+                            m.append(("capture", next_field[1], next_field[2], piece[0], piece[1]))
+                    else:
+                        future_moves = []
+
+                    if future_moves != []:
+                        moves.extend(future_moves)
+                    elif previous_move is None:
+                        moves.append([("capture", next_field[1], next_field[2], piece[0], piece[1])])
+                    elif next_field[1] != previous_move[0] or next_field[2] != previous_move[1]:
+                        moves.append([("capture", next_field[1], next_field[2], piece[0], piece[1])])
+
+        return self.__filter_moves(moves)
+
+    def __filter_moves(self, moves: list):
+        # if there are some moves which are leading to capturing opponent's piece return only them
+        capture_moves = self.__get_capture_moves(moves)
+        if capture_moves != []:
+            best_move = 0
+
+            for move in capture_moves:
+                if len(move) > best_move:
+                    best_move = len(move)
+
+            result = []
+            for move in capture_moves:
+                if len(move) == best_move:
+                    result.append(move)
+
+            return result
+        else:
+            return moves
+
+    def __king_moves(self, piece, player):
+        moves = []
+
+        moves.extend(self.__diagonal_fields(piece, player, -1, -1, lambda row: row >= 0, lambda column: column >= 0))
+        moves.extend(self.__diagonal_fields(piece, player, 1, 1, lambda row: row <= 7, lambda column: column <= 7))
+        moves.extend(self.__diagonal_fields(piece, player, 1, -1, lambda row: row <= 7, lambda column: column >= 0))
+        moves.extend(self.__diagonal_fields(piece, player, -1, 1, lambda row: row >= 0, lambda column: column <= 7))
+
+        return moves
+
+    def __diagonal_fields(self, piece, player, row_diff, column_diff, row_cond, column_cond):
+        fields = []
+        row = piece[0]
+        column = piece[1]
+
+        while row_cond(row) and column_cond(column):
+            row += row_diff
+            column += column_diff
+
+            if self.__validate_field((row, column)):
+                if self.__check_player(self.current_positions[row][column]) == self.__check_player(player):
+                    break
+                else:
+                    fields.append((self.current_positions[row][column], row, column))
+
+        return fields
+
     # check which moves are leading to capturing opponent's piece
     def __get_capture_moves(self, moves):
         capture_moves = []
 
         for move in moves:
-            if move[0] == "capture":
+            if move[0][0] == "capture":
                 capture_moves.append(move)
 
         return capture_moves
@@ -134,31 +186,29 @@ class Board:
     def __check_near_positions(self, player, field, diff):
         fields = []
 
-        fields.append(self.__check_position((field[0] + diff, field[1] - 1)))
-        fields.append(self.__check_position((field[0] + diff, field[1] + 1)))
+        f = self.__check_position((field[0] + diff, field[1] - 1))
+        if not f is None:
+            fields.append(f)
+
+        f = self.__check_position((field[0] + diff, field[1] + 1))
+        if not f is None:
+            fields.append(f)
 
         # check if other player's piece is not on the back
-        back = self.__check_position((field[0] - diff, field[1] - 1))
-        if not back is None and back[0] != VOID and back != player: 
-            fields.append(back)
+        f = self.__check_position((field[0] - diff, field[1] - 1))
+        if not f is None and self.__check_player(f[0]) != VOID and self.__check_player(f[0]) != player: 
+            fields.append(f)
 
-        back = self.__check_position((field[0] - diff, field[1] + 1))
-        if not back is None and back[0] != VOID and back != player: 
-            fields.append(back)
+        f = self.__check_position((field[0] - diff, field[1] + 1))
+        if not f is None and self.__check_player(f[0]) != VOID and self.__check_player(f[0]) != player: 
+            fields.append(f)
         
         return fields
     
     # return type of the selected field
     def __check_position(self, field):
         if self.__validate_field(field):
-            return (self.current_positions[field[0]][field[1]], field[0], field[1])
-
-    # check if player was selected correctly
-    def __validate_player(self, player):
-        if player == 1 or player == 2:
-            return True
-        else:
-            return False
+            return (self.current_positions[field[0]][field[1]], *field)
     
     # check if selected field is on the board
     def __validate_field(self, field: tuple):
@@ -167,15 +217,11 @@ class Board:
         else:
             return False
     
-    # check if player selected his own piece
-    def __validate_piece(self, player, piece: tuple):
-        if not self.__validate_player(player):
-            raise Exception("Wrong player number!")
-
-        if not self.__validate_field(piece):
-            raise Exception("Wrong field number!")
-
-        if self.current_positions[piece[0]][piece[1]] == player:
-            return True
+    def __check_player(self, player): 
+        if player == PLAYER_1 or player == PLAYER_1_KING:
+            return PLAYER_1
+        elif player == VOID:
+            return VOID
         else:
-            return False
+            return PLAYER_2
+   

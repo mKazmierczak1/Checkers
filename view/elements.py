@@ -28,6 +28,5 @@ def draw_piece(row, column, frame: Frame, color):
     canvas.create_oval(15, 15, 70, 70, fill=color)
 
     # bind event handling to the piece
-    func = lambda event: elem_events.highlight_possible_moves(1 if color == RED else 2, (row, column), frame, event)
-    canvas.bind('<Button-1>', func)
+    elem_events.bind_func_with_piece(canvas, row, column, frame, color)
 
