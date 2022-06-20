@@ -78,8 +78,10 @@ class Board:
         # create list with all possible moves for all active player's pieces 
         for i in range(0, 8):
             for j in range(0, 8):
-                if self.__check_player(self.current_positions[i][j]) == self.__check_player(player):
+                if self.current_positions[i][j] == player:
                     moves.extend(self.possible_moves_for_piece(player, (i, j)))
+                elif self.__check_player(self.current_positions[i][j]) == self.__check_player(player):
+                    moves.extend(self.possible_moves_for_piece(player + 2, (i, j)))
 
         capture_moves = self.__get_capture_moves(moves)
 
@@ -91,7 +93,7 @@ class Board:
 
     def possible_moves_for_piece(self, player, piece: tuple):
         if player == PLAYER_1_KING or player == PLAYER_2_KING:
-            return self.__king_moves(piece, player)
+            return self.__king_moves(piece, player, -1)
         elif player == PLAYER_1:
             return self.__pawn_moves(piece, player, -1, None)
         else:
@@ -103,7 +105,7 @@ class Board:
 
         for field in fields:
             if field[0] == VOID and previous_move is None:
-                moves.append([("near", field[1], field[2], piece[0], piece[1])])
+                moves.append([("near", field[1], field[2], piece[0], piece[1], player)])
             elif self.__check_player(field[0]) != player and field[0] != VOID:
                 field_column = field[2] + 1 if field[2] > piece[1] else field[2] - 1
                 next_field = self.__check_position((field[1] + (field[1] - piece[0]) , field_column))
@@ -113,16 +115,16 @@ class Board:
                         future_moves = self.__pawn_moves((next_field[1], next_field[2]), player, diff, piece)
                     
                         for m in future_moves:
-                            m.append(("capture", next_field[1], next_field[2], piece[0], piece[1]))
+                            m.append(("capture", next_field[1], next_field[2], piece[0], piece[1], player))
                     else:
                         future_moves = []
 
                     if future_moves != []:
                         moves.extend(future_moves)
                     elif previous_move is None:
-                        moves.append([("capture", next_field[1], next_field[2], piece[0], piece[1])])
+                        moves.append([("capture", next_field[1], next_field[2], piece[0], piece[1], player)])
                     elif next_field[1] != previous_move[0] or next_field[2] != previous_move[1]:
-                        moves.append([("capture", next_field[1], next_field[2], piece[0], piece[1])])
+                        moves.append([("capture", next_field[1], next_field[2], piece[0], piece[1], player)])
 
         return self.__filter_moves(moves)
 
@@ -145,14 +147,36 @@ class Board:
         else:
             return moves
 
-    def __king_moves(self, piece, player):
+    def __king_moves(self, piece, player, blocked_direction):
+        fields = []
         moves = []
 
-        moves.extend(self.__diagonal_fields(piece, player, -1, -1, lambda row: row >= 0, lambda column: column >= 0))
-        moves.extend(self.__diagonal_fields(piece, player, 1, 1, lambda row: row <= 7, lambda column: column <= 7))
-        moves.extend(self.__diagonal_fields(piece, player, 1, -1, lambda row: row <= 7, lambda column: column >= 0))
-        moves.extend(self.__diagonal_fields(piece, player, -1, 1, lambda row: row >= 0, lambda column: column <= 7))
+        if blocked_direction != 0:
+            fields.append(self.__diagonal_fields(piece, player, -1, -1, lambda row: row >= 0, lambda column: column >= 0))
+        if blocked_direction != 1:
+            fields.append(self.__diagonal_fields(piece, player, 1, 1, lambda row: row <= 7, lambda column: column <= 7))
+        if blocked_direction != 2:
+            fields.append(self.__diagonal_fields(piece, player, 1, -1, lambda row: row <= 7, lambda column: column >= 0))
+        if blocked_direction != 3:
+            fields.append(self.__diagonal_fields(piece, player, -1, 1, lambda row: row >= 0, lambda column: column <= 7))
 
+        for i in range(0, len(fields)):
+            f = fields[i]
+            last = len(f) - 1
+
+            if f != []:
+                if f[last][0] == VOID:
+                    for field in f:
+                        moves.append([("near", field[1], field[2], piece[0], piece[1], player)])
+                elif self.__validate_field((f[last][1], f[last][2])) and self.current_positions[f[last][1]][f[last][2]] == VOID:
+                    pass
+                # calculate for every possible move again
+                else:
+                    for j in range(0, last):
+                        moves.append([("near", f[j][1], f[j][2], piece[0], piece[1], player)])
+
+        # print("king's fields", fields)
+        # print("king's moves", moves)
         return moves
 
     def __diagonal_fields(self, piece, player, row_diff, column_diff, row_cond, column_cond):
@@ -167,8 +191,11 @@ class Board:
             if self.__validate_field((row, column)):
                 if self.__check_player(self.current_positions[row][column]) == self.__check_player(player):
                     break
+                elif self.current_positions[row][column] == VOID:
+                    fields.append((self.current_positions[row][column], row, column))
                 else:
                     fields.append((self.current_positions[row][column], row, column))
+                    break
 
         return fields
 

@@ -34,7 +34,7 @@ def highlight_possible_moves(player, piece: tuple, frame: Frame, event):
     highlighted_fields = game.possible_moves(player, piece)
     for hf in highlighted_fields:
         canvas = elements.draw_field(hf[1], hf[2], frame, LIGHT_BLUE)
-        bind_move_func(canvas, player, piece, hf, frame)
+        bind_move_func(canvas, hf[5], piece, hf, frame)
 
 # bind function for moving piece with highlighted field
 def bind_move_func(canvas, player, piece: tuple, move: tuple, frame: Frame):
@@ -52,12 +52,11 @@ def move_piece(player, piece: tuple, move: tuple, frame: Frame, event):
     highlighted_fields.clear()
 
     # make move on the board
-    game.move(player, piece, move, frame)
-
-    # update view after changes on the board
-    window = frame.master
-    clean_window(window)
-    frames.draw_all_pieces(frames.get_board_frame(window))
+    if not game.move(player, piece, move, frame):
+        # update view after changes on the board
+        window = frame.master
+        clean_window(window)
+        frames.draw_all_pieces(frames.get_board_frame(window))
 
 # remove all elements present on the window
 def clean_window(window: Tk):

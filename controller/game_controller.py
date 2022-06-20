@@ -26,9 +26,11 @@ class Game_controller:
                 moves = m
 
         # if game has finished draw proper element
-        if self.board.make_moves(player, piece, moves):
-            print("Game finished")
-            windows.draw_winner_window(self.window, player)
+        result = self.board.make_moves(player, piece, moves)
+        if result != 0:
+            windows.draw_winner_window(self.window, result)
+
+            return True
         else:
             # update turn
             self.__next_turn()
@@ -36,10 +38,11 @@ class Game_controller:
             # update allowed moves
             self.allowed_moves = self.board.get_all_possible_moves(self.turn)
 
+        return False
+
     # return list of all moves for active player
     def possible_moves(self, player, piece):
         if player == self.turn or player == (self.turn + 2):
-            
             moves = self.board.possible_moves_for_piece(player, piece)
             result = []
 
@@ -52,15 +55,22 @@ class Game_controller:
         else:
             return []
 
-    # change turn
+    # change turn or make ai move
     def __next_turn(self):
         if self.ai is None:
             self.turn = 1 if self.turn == 2 else 2
         else:
             ai_move = self.ai.make_move(self.board)
-            self.board.make_moves(2, (ai_move[0][3], ai_move[0][4]), ai_move)
+            
+            if not ai_move is None:
+                # if game has finished draw proper element
+                result = self.board.make_moves(2, (ai_move[0][3], ai_move[0][4]), ai_move)
+                if result != 0:
+                    windows.draw_winner_window(self.window, result)
+                
             self.__update_window()
 
+    # after ai makes move update gui
     def __update_window(self):
         for widget in self.window.winfo_children():
             widget.destroy()
