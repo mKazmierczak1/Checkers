@@ -104,8 +104,10 @@ class Board:
         fields = self.__check_near_positions(player, piece, diff)
 
         for field in fields:
+            # if this is first move and there is no piece on the field then this is possible move
             if field[0] == VOID and previous_move is None:
                 moves.append([("near", field[1], field[2], piece[0], piece[1], player)])
+            # if behind opponent's piece is void field then this is possible move
             elif self.__check_player(field[0]) != player and field[0] != VOID:
                 field_column = field[2] + 1 if field[2] > piece[1] else field[2] - 1
                 next_field = self.__check_position((field[1] + (field[1] - piece[0]) , field_column))
@@ -151,6 +153,7 @@ class Board:
         fields = []
         moves = []
 
+        # compute all possible fields
         if blocked_direction != 0:
             fields.append(self.__diagonal_fields(piece, player, -1, -1, lambda row: row >= 0, lambda column: column >= 0))
         if blocked_direction != 1:
@@ -175,10 +178,9 @@ class Board:
                     for j in range(0, last):
                         moves.append([("near", f[j][1], f[j][2], piece[0], piece[1], player)])
 
-        # print("king's fields", fields)
-        # print("king's moves", moves)
         return moves
 
+    # return all fields which might be king's move
     def __diagonal_fields(self, piece, player, row_diff, column_diff, row_cond, column_cond):
         fields = []
         row = piece[0]
@@ -244,6 +246,7 @@ class Board:
         else:
             return False
     
+    # check which player it is
     def __check_player(self, player): 
         if player == PLAYER_1 or player == PLAYER_1_KING:
             return PLAYER_1
